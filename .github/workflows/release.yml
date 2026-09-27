@@ -37,6 +37,12 @@ jobs:
       go: ${{ steps.check.outputs.go }}
     steps:
       - id: check
+        # Inputs are passed through env, never interpolated into the script:
+        # ${{ }} substitution is textual, so a quote or paren in a user-supplied
+        # string both breaks the shell and is a script-injection vector.
+        env:
+          FORCE: ${{ github.event.inputs.force }}
+          REASON: ${{ github.event.inputs.reason }}
         shell: bash
         run: |
           set -euo pipefail
@@ -47,11 +53,11 @@ jobs:
           if [ "${now_s}" -ge "${emb_s}" ]; then
             echo "Embargo lifted."
             echo "go=true" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event.inputs.force }}" = "true" ]; then
-            if [ -z "${{ github.event.inputs.reason }}" ]; then
+          elif [ "${FORCE:-false}" = "true" ]; then
+            if [ -z "${REASON:-}" ]; then
               echo "::error::force=true requires a reason"; exit 1
             fi
-            echo "::warning::Embargo overridden: ${{ github.event.inputs.reason }}"
+            echo "::warning::Embargo overridden: ${REASON}"
             echo "go=true" >> "$GITHUB_OUTPUT"
           else
             remain=$(( (emb_s - now_s) / 3600 ))
