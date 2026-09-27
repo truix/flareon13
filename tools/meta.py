@@ -1,0 +1,32 @@
+"""Per-challenge metadata used to decorate the HTML: timings, one-line hook, tags."""
+
+# number -> (name, duration, platform, one-line summary, [technique tags])
+CHALLENGES = {
+    1: ("FLAreCAPTCHA", "0h00m29s", "HTML / JS",
+        "A fake reCAPTCHA whose flag falls out of a right-click held for two seconds.",
+        ["JS reversing", "XOR layers", "Proxy trap"]),
+    2: ("GhostStream", "0h04m40s", "Windows x64",
+        "An NTFS alternate data stream, unmasked inside a window procedure, keys an RC4 blob in a dropped partner binary.",
+        ["ADS", "WndProc logic", "Self-modifying code", "RC4"]),
+    3: ("FlareOn13.doc", "0h05m30s", "Polyglot / macOS",
+        "A five-way polyglot hiding six treasure strings in six file formats, checked by a fat Mach-O.",
+        ["Polyglot", "PDF crypto", "JBIG2", "UDF", "SHA-0", "RC4"]),
+    4: ("ToxicMiner", "0h10m34s", "Windows x64",
+        "cpuminer with a tampered SHA-256; the flag key is the author's volume serial, found by a 2^32 sweep.",
+        ["Trojanised OSS", "Modified SHA-256", "Brute force", "RC4"]),
+    5: ("catthief", "0h03m36s", "Windows x64 + pcap",
+        "A capture inside a capture: the thief uploads pcapng of its own exfil, and the loot has the flag written on it.",
+        ["Nested pcapng", "Traffic carving", "Rust binary"]),
+    6: ("Threat Invaders", "0h07m00s", ".NET 10 + pcap",
+        "A backdoored CoreCLR host hooks six managed methods and turns the high-score API into a C2 channel.",
+        ["Bundle diffing", "Managed hooking", "C2 over HTTP", "LCG keystream"]),
+    7: ("FlareCalc", "0h50m12s", "Windows x64",
+        "A calculator whose float divide-by-zero handler runs shellcode smuggled in the Authenticode certificate.",
+        ["VEH abuse", "Cert smuggling", "API hashing", "Nested shellcode", "XTEA"]),
+    8: ("crux", "0h41m36s", "WASM / Go",
+        "A Go-to-WASM browser extension that only accepts a Pratt primality certificate for a hidden 256-bit prime.",
+        ["Go WASM", "garble", "Pratt certificate", "AES-CBC", "Instrumentation"]),
+    9: ("NeonOutRun", "0h22m57s", "Linux ELF / Tauri",
+        "A racing game whose JavaScript lives four compression layers deep and whose flag is gated on a float identity.",
+        ["Tauri", "Multi-stage unpacking", "Builtin hooking", "Decoy flag", "Emulation"]),
+}

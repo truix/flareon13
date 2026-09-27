@@ -1,0 +1,81 @@
+name: Build writeup
+
+# Runs on every push so the writeup is always known to render.
+# Publishes nothing - the embargoed release workflow owns publication.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'WRITEUP.md'
+      - 'tools/**'
+      - '.github/workflows/build.yml'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install --quiet markdown
+
+      - name: Render
+        run: python tools/mkhtml.py
+
+      - name: Verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import sys
+          h = open('writeup.html', encoding='utf-8').read()
+          bad = []
+          for n in range(1, 10):
+              if f'id="c{n}"' not in h:
+                  bad.append(f'missing anchor c{n}')
+          if '```' in h:
+              bad.append('unrendered code fence')
+          if h.count('class="flag"') < 9:
+              bad.append('fewer than 9 flags rendered')
+          if 'id="glossary"' not in h:
+              bad.append('glossary missing')
+          if bad:
+              print('\n'.join('::error::' + b for b in bad)); sys.exit(1)
+          print(f'OK: {len(h)} bytes')
+          PY
+
+      - name: Check every Reproduce line points at a file that exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import re, os, sys
+          md = open('WRITEUP.md', encoding='utf-8').read()
+          missing = []
+          for m in re.finditer(r'\*\*Reproduce:\*\* `([^`]+)`', md):
+              cmd = m.group(1)
+              for tok in cmd.split():
+                  if '/' in tok and not tok.startswith('-'):
+                      p = tok.strip('`')
+                      if not os.path.exists(p):
+                          missing.append(p)
+          if missing:
+              print('\n'.join('::warning::missing referenced path: ' + p for p in missing))
+          else:
+              print('all Reproduce paths present')
+          PY
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: writeup-html
+          path: writeup.html
+          retention-days: 14

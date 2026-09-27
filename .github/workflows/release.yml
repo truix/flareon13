@@ -1,0 +1,166 @@
+name: Release writeup (embargoed)
+
+# Flare-On 13 runs four weeks from 2026-09-25 20:00 ET.
+# It ends 2026-10-23 20:00 ET == 2026-10-24 00:00 UTC.
+# Nothing is published before that instant.
+
+on:
+  schedule:
+    # Hourly around the embargo lift, so the release lands within the hour
+    # even if GitHub delays a scheduled run (it often does under load).
+    - cron: '5 * * * *'
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Publish even if the embargo has not lifted (requires a reason)'
+        type: boolean
+        default: false
+      reason:
+        description: 'Why are you overriding the embargo?'
+        type: string
+        required: false
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+env:
+  EMBARGO_UTC: '2026-10-24T00:00:00Z'
+  TAG: flareon13-writeup
+
+jobs:
+  gate:
+    name: Check embargo
+    runs-on: ubuntu-latest
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          now_s=$(date -u +%s)
+          emb_s=$(date -u -d "${EMBARGO_UTC}" +%s)
+          echo "now    : $(date -u -d @${now_s} --iso-8601=seconds)"
+          echo "embargo: ${EMBARGO_UTC}"
+          if [ "${now_s}" -ge "${emb_s}" ]; then
+            echo "Embargo lifted."
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event.inputs.force }}" = "true" ]; then
+            if [ -z "${{ github.event.inputs.reason }}" ]; then
+              echo "::error::force=true requires a reason"; exit 1
+            fi
+            echo "::warning::Embargo overridden: ${{ github.event.inputs.reason }}"
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            remain=$(( (emb_s - now_s) / 3600 ))
+            echo "Embargo still active, ~${remain}h remaining. Nothing published."
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  release:
+    name: Build and publish
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install build deps
+        run: pip install --quiet markdown
+
+      - name: Build writeup.html
+        run: |
+          python tools/mkhtml.py
+          test -s writeup.html
+
+      - name: Sanity-check the rendered output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import re, sys
+          h = open('writeup.html', encoding='utf-8').read()
+          problems = []
+          for n in range(1, 10):
+              if f'id="c{n}"' not in h:
+                  problems.append(f'missing challenge anchor c{n}')
+          if h.count('```'):
+              problems.append('unrendered code fence in output')
+          if h.count('class="flag"') < 9:
+              problems.append('fewer than 9 rendered flags')
+          if problems:
+              print('\n'.join('::error::' + p for p in problems)); sys.exit(1)
+          print('writeup.html OK:', len(h), 'bytes')
+          PY
+
+      - name: Assemble release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          cp WRITEUP.md writeup.html README.md dist/
+          # reproduction scripts only - no challenge material
+          find . -path ./dist -prune -o -name 'solve.py' -print \
+                 -o -name 'recarve.py' -print -o -name 'pratt.py' -print \
+                 -o -name 'emu.py' -print -o -name 'final.js' -print \
+            | sed 's|^\./||' > dist/SCRIPTS.txt
+          tar -czf dist/flareon13-writeup.tar.gz \
+              WRITEUP.md writeup.html README.md tools \
+              $(cat dist/SCRIPTS.txt)
+          ls -la dist
+
+      - name: Compose release notes
+        shell: bash
+        run: |
+          {
+            echo "Complete solutions to all nine Flare-On 13 challenges, published now that the contest has ended."
+            echo
+            echo "- \`WRITEUP.md\` — the writeup in Markdown"
+            echo "- \`writeup.html\` — rendered single-page version with a techniques glossary"
+            echo "- \`flareon13-writeup.tar.gz\` — both, plus the build tooling and reproduction scripts"
+            echo
+            echo "No challenge binaries are redistributed; the FLARE team publishes those officially."
+            echo
+            echo "Total time from first download to last accepted flag: 2h54m."
+          } > dist/NOTES.md
+          cat dist/NOTES.md
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.TAG }}
+          name: Flare-On 13 — Solutions
+          body_path: dist/NOTES.md
+          draft: false
+          prerelease: false
+          files: |
+            dist/WRITEUP.md
+            dist/writeup.html
+            dist/flareon13-writeup.tar.gz
+
+      - name: Prepare Pages site
+        run: |
+          mkdir -p _site
+          cp writeup.html _site/index.html
+          cp WRITEUP.md _site/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  pages:
+    name: Deploy Pages
+    needs: release
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

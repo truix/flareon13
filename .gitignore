@@ -1,0 +1,104 @@
+# --- secrets -----------------------------------------------------------
+.ctfd.json
+*.token
+
+# --- challenge binaries are NOT redistributed --------------------------
+# Flare-On publishes the original binaries itself when the contest ends.
+*.7z
+*/files/
+*/run/
+
+# --- analysis scratch: large, machine-specific, not useful to a reader --
+*.i64
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+*.bin
+*.exe
+*.dll
+*.pdb
+*.elf
+*.wasm
+*.wim
+*.iso
+*.pcapng
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.log
+*.wat
+mem*.bin
+trace*.txt
+s64*.txt
+*/work/streams/
+*/work/stages/
+*/work/assets/
+*/work/exfil/
+*/work/ext/
+*/work/a1_*
+*/work/a2*
+*/work/a3_*
+*/work/sp_*
+08-crux/work/wabt-*/
+08-crux/work/binaryen-*/
+09-NeonOutRun/work/idasql*/
+06-Threat_Invaders/work/ref/
+06-Threat_Invaders/work/idasql_analysis/
+
+# keep the decompiled C that the writeup cites, even though it is scratch
+!*/work/*.c
+
+# --- python / node ------------------------------------------------------
+__pycache__/
+*.pyc
+node_modules/
+package-lock.json
+
+# --- downloaded toolchains / tarballs / pickles ------------------------
+*.tar.gz
+*.tgz
+*.zip
+*.pkl
+*.p7b
+*.jbig2
+*.i64.*
+*/work/udf/
+*/work/click_me_analysis/slice0
+*/work/click_me_analysis/slice1
+# huge whole-binary decompiles: cite them, don't ship them
+07-FlareCalc/work/fc.c
+05-catthief/work/cat.c
+04-ToxicMiner/work/tm.c
+08-crux/work/sc_all.c
+09-NeonOutRun/work/a3_f1.c
+03-FlareOn13.doc/work/click_me_analysis/slice*.c
+
+# --- one-off probe scripts kept out of the published repo --------------
+08-crux/work/t[0-9]*.js
+08-crux/work/f[0-9]*.js
+08-crux/work/fuzz*.js
+08-crux/work/probe*.js
+08-crux/work/p[lt]*.js
+08-crux/work/dump*.js
+08-crux/work/blob*.js
+08-crux/work/callblob*.js
+08-crux/work/charset.js
+08-crux/work/hill.js
+08-crux/work/l64.js
+08-crux/work/lens.js
+08-crux/work/memtrace.js
+08-crux/work/one*.js
+08-crux/work/padtest.js
+08-crux/work/panic*.js
+08-crux/work/prog.js
+08-crux/work/vec.js
+08-crux/work/*.txt
+07-FlareCalc/work/*.log
+
+# --- decompiled challenge source is challenge material, not ours -------
+*/work/src/
+*/work/wb_src/
+*.cs

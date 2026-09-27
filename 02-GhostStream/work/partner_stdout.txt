@@ -1,0 +1,4 @@
+Press any key to continue . . . 
+[Partner] Process started.
+
+[FAILED] Try again with better debugging
