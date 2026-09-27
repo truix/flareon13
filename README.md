@@ -4,7 +4,7 @@ Complete solutions to all nine challenges of the 13th annual [Flare-On](https://
 
 > [!IMPORTANT]
 > **Embargoed until the contest ends: 2026-10-24 00:00 UTC** (Fri 23 Oct, 8pm ET).
-> Flare-On's rules and basic courtesy mean no flags, solutions or spoilers get published while the contest is live. This repository is private until then; the public release is cut automatically by [`.github/workflows/release.yml`](.github/workflows/release.yml), which refuses to run early.
+> Flare-On's rules and basic courtesy mean no flags, solutions or spoilers get published while the contest is live. This repository is **private** until then. [`.github/workflows/release.yml`](.github/workflows/release.yml) runs hourly, refuses to do anything before the embargo lifts, and then flips the repository to public, cuts the release and publishes GitHub Pages in one pass.
 
 ## Contents
 

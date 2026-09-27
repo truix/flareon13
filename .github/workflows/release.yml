@@ -59,9 +59,38 @@ jobs:
             echo "go=false" >> "$GITHUB_OUTPUT"
           fi
 
+  publicize:
+    name: Make repository public
+    needs: gate
+    if: needs.gate.outputs.go == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Flip visibility to public
+        env:
+          # GITHUB_TOKEN cannot change repository visibility: that is an admin
+          # operation, so a PAT with `repo` scope must be supplied as a secret.
+          GH_TOKEN: ${{ secrets.PUBLISH_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::warning::secrets.PUBLISH_TOKEN is not set - repository stays private."
+            echo "Set it with: gh secret set PUBLISH_TOKEN --repo ${{ github.repository }}"
+            exit 0
+          fi
+          vis=$(gh api "repos/${{ github.repository }}" --jq .visibility)
+          echo "current visibility: ${vis}"
+          if [ "${vis}" = "public" ]; then
+            echo "Already public, nothing to do."; exit 0
+          fi
+          gh api -X PATCH "repos/${{ github.repository }}" -f visibility=public --silent
+          new=$(gh api "repos/${{ github.repository }}" --jq .visibility)
+          echo "new visibility: ${new}"
+          [ "${new}" = "public" ] || { echo "::error::visibility change did not apply"; exit 1; }
+
   release:
     name: Build and publish
-    needs: gate
+    needs: [gate, publicize]
     if: needs.gate.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
